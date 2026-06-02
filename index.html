@@ -93,15 +93,15 @@ svg{display:block}
       <div class="field"><input id="month" type="number" inputmode="numeric" min="1" max="12" placeholder="0"><span>月</span></div>
     </div>
     <div class="row">
-      <label for="food">食費<span class="hint">折半前の総額（自動で半分にします）</span></label>
+      <label for="food">食費<span class="hint">折半前の総額（自動で半分）</span></label>
       <div class="field"><input id="food" type="number" inputmode="numeric" min="0" placeholder="0"><span>円</span></div>
     </div>
     <div class="row">
-      <label for="gas">電気・ガス</label>
+      <label for="gas">電気・ガス<span class="hint">折半前の総額（自動で半分）</span></label>
       <div class="field"><input id="gas" type="number" inputmode="numeric" min="0" placeholder="0"><span>円</span></div>
     </div>
     <div class="row">
-      <label for="water">水道</label>
+      <label for="water">水道<span class="hint">折半前の総額（自動で半分）</span></label>
       <div class="field"><input id="water" type="number" inputmode="numeric" min="0" placeholder="0"><span>円</span></div>
     </div>
     <div class="row">
@@ -168,17 +168,19 @@ svg{display:block}
   function build(){
     var m=num("month");
     var foodHalf=Math.round(num("food")/2);
-    var gas=num("gas"),water=num("water"),offset=num("offset");
+    var gasHalf=Math.round(num("gas")/2);
+    var waterHalf=Math.round(num("water")/2);
+    var offset=num("offset");
     var net=num("net"),rent=num("rent");
-    var total=net+gas+water+foodHalf+rent-offset;
+    var total=net+gasHalf+waterHalf+foodHalf+rent-offset;
     var t=
       "==="+m+"月分立替金===\n"+
       yen(total)+"\n"+
       "===============\n"+
       "内訳\n"+
       "・インターネット："+yen(net)+"\n"+
-      "・電気・ガス："+yen(gas)+"\n"+
-      "・水道："+yen(water)+"\n"+
+      "・電気・ガス："+yen(gasHalf)+"\n"+
+      "・水道："+yen(waterHalf)+"\n"+
       "・食費など："+yen(foodHalf)+"\n"+
       "・家賃："+yen(rent)+"\n"+
       "・相殺：-"+yen(offset);
