@@ -90,7 +90,7 @@ svg{display:block}
   <div class="card">
     <div class="row">
       <label for="month">何月分</label>
-      <div class="field"><input id="month" type="number" inputmode="numeric" min="1" max="12"><span>月</span></div>
+      <div class="field"><input id="month" type="number" inputmode="numeric" min="1" max="12" placeholder="0"><span>月</span></div>
     </div>
     <div class="row">
       <label for="food">食費<span class="hint">折半前の総額（自動で半分にします）</span></label>
@@ -155,7 +155,6 @@ svg{display:block}
 
   function valid(v){return v!=null && v!=="" && !isNaN(v);}
 
-  el.month.value=(new Date().getMonth()+1);
   var saved={};
   try{saved=JSON.parse(localStorage.getItem(KEY)||"{}");}catch(e){}
   el.net.value = valid(saved.net) ? saved.net : DEF.net;
