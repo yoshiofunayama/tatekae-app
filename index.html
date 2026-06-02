@@ -63,6 +63,8 @@ summary{list-style:none;cursor:pointer;font-size:13px;color:var(--muted);padding
 summary::-webkit-details-marker{display:none}
 summary .chev{transition:transform .2s}
 details[open] summary .chev{transform:rotate(90deg)}
+.setup-note{font-size:12px;color:var(--muted);margin:11px 2px;line-height:1.6}
+.saved{color:var(--clay);margin-left:6px;opacity:0;transition:opacity .3s;font-weight:500}
 .total-card{background:var(--clay);border-radius:16px;padding:16px 20px;display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
 .total-card .l{color:#FBEFE6;font-size:13px;font-family:"Zen Maru Gothic",sans-serif}
 .total-card .v{color:#fff;font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:27px;letter-spacing:.01em}
@@ -111,6 +113,7 @@ svg{display:block}
   <details id="fixedBox">
     <summary><svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>固定費（変わったら変更／自動で記憶します）</summary>
     <div class="card" style="margin-top:8px">
+      <p class="setup-note">最初に一度だけ家賃とインターネットを設定すれば、この端末に記憶され、次回から自動で入ります。<span class="saved" id="savedNote">✓ 保存しました</span></p>
       <div class="row">
         <label for="net">インターネット</label>
         <div class="field"><input id="net" type="number" inputmode="numeric" min="0"><span>円</span></div>
@@ -140,19 +143,25 @@ svg{display:block}
 <script>
 (function(){
   var KEY="tatekae_fixed_v1";
+  var DEF={net:0, rent:0};
   var ids=["month","food","gas","water","offset","net","rent"];
   var el={}; ids.forEach(function(id){el[id]=document.getElementById(id);});
   var out=document.getElementById("output");
   var totalEl=document.getElementById("total");
   var btn=document.getElementById("copyBtn");
   var btnLabel=document.getElementById("btnLabel");
+  var savedNote=document.getElementById("savedNote");
+  var fixedBox=document.getElementById("fixedBox");
 
-  // defaults
+  function valid(v){return v!=null && v!=="" && !isNaN(v);}
+
   el.month.value=(new Date().getMonth()+1);
   var saved={};
   try{saved=JSON.parse(localStorage.getItem(KEY)||"{}");}catch(e){}
-  el.net.value=(saved.net!=null)?saved.net:1925;
-  el.rent.value=(saved.rent!=null)?saved.rent:62665;
+  el.net.value = valid(saved.net) ? saved.net : DEF.net;
+  el.rent.value = valid(saved.rent) ? saved.rent : DEF.rent;
+  // 初回（まだ保存がない）は固定費を開いて設定をうながす
+  if(!(valid(saved.net) || valid(saved.rent))){ fixedBox.open=true; }
 
   function num(id){var v=parseInt(el[id].value,10);return isNaN(v)?0:v;}
   function yen(n){return n.toLocaleString("ja-JP")+"円";}
@@ -179,13 +188,27 @@ svg{display:block}
     return t;
   }
 
+  var noteTimer;
   function saveFixed(){
-    try{localStorage.setItem(KEY,JSON.stringify({net:num("net"),rent:num("rent")}));}catch(e){}
+    var obj={};
+    if(el.net.value!=="") obj.net=num("net");
+    if(el.rent.value!=="") obj.rent=num("rent");
+    try{localStorage.setItem(KEY,JSON.stringify(obj));}catch(e){}
+    savedNote.style.opacity="1";
+    clearTimeout(noteTimer);
+    noteTimer=setTimeout(function(){savedNote.style.opacity="0";},1400);
   }
 
   ids.forEach(function(id){el[id].addEventListener("input",function(){
     build(); if(id==="net"||id==="rent") saveFixed();
   });});
+
+  // 空欄のままフォーカスを外したら初期値に戻す（0固定を防ぐ）
+  ["net","rent"].forEach(function(id){
+    el[id].addEventListener("blur",function(){
+      if(el[id].value===""){ el[id].value=DEF[id]; build(); saveFixed(); }
+    });
+  });
 
   btn.addEventListener("click",function(){
     var text=build();
