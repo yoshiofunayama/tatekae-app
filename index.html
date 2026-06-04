@@ -72,6 +72,8 @@ pre.out{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13px;line-h
 button.copy{width:100%;font-family:"Zen Maru Gothic",sans-serif;font-weight:500;font-size:16px;padding:15px;border:none;border-radius:14px;background:var(--clay);color:#fff;cursor:pointer;transition:transform .1s, background .2s;display:flex;align-items:center;justify-content:center;gap:8px}
 button.copy:active{transform:scale(.985)}
 button.copy.done{background:var(--total)}
+button.clear{width:100%;font-family:"Zen Kaku Gothic New",sans-serif;font-size:14px;padding:11px;border:1px solid var(--line);border-radius:14px;background:transparent;color:var(--muted);cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
+button.clear:active{background:var(--clay-soft)}
 .foot{text-align:center;font-size:11px;color:var(--muted);margin-top:22px;line-height:1.7}
 svg{display:block}
 </style>
@@ -137,13 +139,20 @@ svg{display:block}
     <span id="btnLabel">コピーする</span>
   </button>
 
-  <div class="foot">ホーム画面に追加すると毎月ワンタップで開けます<br>入力した固定費はこの端末に保存されます</div>
+  <button class="clear" id="clearBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    今月の入力をクリア
+  </button>
+
+  <div class="foot">入力中のデータは自動保存され、閉じても残ります<br>来月は「クリア」でリセット（家賃・ネットの設定は保持）</div>
 </div>
 
 <script>
 (function(){
   var KEY="tatekae_fixed_v1";
+  var DKEY="tatekae_draft_v1";
   var DEF={net:0, rent:0};
+  var VARS=["month","food","gas","water","offset"];
   var ids=["month","food","gas","water","offset","net","rent"];
   var el={}; ids.forEach(function(id){el[id]=document.getElementById(id);});
   var out=document.getElementById("output");
@@ -161,6 +170,11 @@ svg{display:block}
   el.rent.value = valid(saved.rent) ? saved.rent : DEF.rent;
   // 初回（まだ保存がない）は固定費を開いて設定をうながす
   if(!(valid(saved.net) || valid(saved.rent))){ fixedBox.open=true; }
+
+  // 入力途中の下書き（月・食費・電気ガス・水道・相殺）を復元する
+  var draft={};
+  try{draft=JSON.parse(localStorage.getItem(DKEY)||"{}");}catch(e){}
+  VARS.forEach(function(id){ if(draft[id]!=null && draft[id]!==""){ el[id].value=draft[id]; } });
 
   function num(id){var v=parseInt(el[id].value,10);return isNaN(v)?0:v;}
   function yen(n){return n.toLocaleString("ja-JP")+"円";}
@@ -201,8 +215,15 @@ svg{display:block}
     noteTimer=setTimeout(function(){savedNote.style.opacity="0";},1400);
   }
 
+  function saveDraft(){
+    var obj={};
+    VARS.forEach(function(id){ if(el[id].value!=="") obj[id]=el[id].value; });
+    try{localStorage.setItem(DKEY,JSON.stringify(obj));}catch(e){}
+  }
+
   ids.forEach(function(id){el[id].addEventListener("input",function(){
-    build(); if(id==="net"||id==="rent") saveFixed();
+    build();
+    if(id==="net"||id==="rent"){ saveFixed(); } else { saveDraft(); }
   });});
 
   // 空欄のままフォーカスを外したら初期値に戻す（0固定を防ぐ）
@@ -210,6 +231,15 @@ svg{display:block}
     el[id].addEventListener("blur",function(){
       if(el[id].value===""){ el[id].value=DEF[id]; build(); saveFixed(); }
     });
+  });
+
+  // クリア：今月の入力（月・食費・電気ガス・水道・相殺）だけリセット。固定費は残す
+  document.getElementById("clearBtn").addEventListener("click",function(){
+    if(!confirm("今月の入力をクリアします。よろしいですか？（家賃・インターネットの設定は残ります）")) return;
+    VARS.forEach(function(id){ el[id].value=""; });
+    try{localStorage.removeItem(DKEY);}catch(e){}
+    build();
+    el.month.focus();
   });
 
   btn.addEventListener("click",function(){
